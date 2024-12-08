@@ -16,24 +16,24 @@ public:
     ~ElectronicBadgeMgskj();
 
     // 建立连接
-    virtual int connect(const char* portName, int rate, int sleep) override;
+    virtual bool connect(const char* portName, int baudrate, int parity = 0, int dataBits = 8, int stopBits = 0,
+                         int readIntervalTimeout = 0) override;
 
     // 关闭连接
     virtual void disconnect() override;
 
     // 文字显示
-    virtual int printText(QByteArray content) override;
+    virtual int printText(QByteArray content, int color, int fontSize,
+                          const SendMessageCallback& callback = nullptr) override;
 
     // 清屏操作
-    virtual int resetScreen() override;
+    virtual int resetScreen(const SendMessageCallback& callback = nullptr) override;
 
     // 检查连接是否正常
     virtual bool checkConnection() override;
 
 private:
     void checkChar(char* hexBuff, int hexLen);
-
-signals:
 
 private:
     SerialPortUtil* m_serialPortUtil = nullptr;
