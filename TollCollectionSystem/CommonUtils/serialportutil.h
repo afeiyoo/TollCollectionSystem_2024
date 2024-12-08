@@ -3,10 +3,11 @@
 
 #include <QObject>
 #include <QThread>
+#include <QVector>
+#include <vector>
 
 #include "CSerialPort/SerialPort.h"
 #include "CSerialPort/SerialPortInfo.h"
-#include "CommLogger.h"
 
 using namespace itas109;
 class SerialPortUtil : public QObject, public CSerialPortListener {
@@ -18,7 +19,8 @@ public:
 
     // 打开串口
     bool openSerialPort(const char *portName, int baudrate = BaudRate::BaudRate9600, int parity = Parity::ParityNone,
-                        int dataBits = DataBits::DataBits8, int stopBits = StopBits::StopOne);
+                        int dataBits = DataBits::DataBits8, int stopBits = StopBits::StopOne,
+                        int readIntervalTimeout = 0);
 
     // 关闭串口
     void closeSerialPort();
@@ -34,6 +36,9 @@ public:
 
     // 向串口发送数据
     int sendSerialPortMsg(QByteArray msg);
+
+    // 获取可用串口信息
+    QVector<SerialPortInfo> availableSerialPorts();
 
 protected:
     // 监听串口数据

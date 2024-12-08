@@ -8,7 +8,8 @@ SerialPortUtil::~SerialPortUtil() {
     m_serialPort = nullptr;
 }
 
-bool SerialPortUtil::openSerialPort(const char *portName, int baudrate, int parity, int dataBits, int stopBits) {
+bool SerialPortUtil::openSerialPort(const char *portName, int baudrate, int parity, int dataBits, int stopBits,
+                                    int readIntervalTimeout) {
     // 串口已经打开，则清空串口数据内容后，重新打开
     if (m_serialPort->isOpen()) {
         m_serialPort->clearError();
@@ -19,10 +20,10 @@ bool SerialPortUtil::openSerialPort(const char *portName, int baudrate, int pari
 
     m_serialPort->connectReadEvent(this);  // 连接读取事件
     m_serialPort->init(portName, BaudRate(baudrate), Parity(parity), DataBits(dataBits),
-                       StopBits(stopBits));   // 串口初始化
-    m_serialPort->setReadIntervalTimeout(0);  // 设置串口读取时间间隔
+                       StopBits(stopBits));                     // 串口初始化
+    m_serialPort->setReadIntervalTimeout(readIntervalTimeout);  // 设置串口读取时间间隔
 
-    return m_serialPort->open();  // 打开串口
+    return m_serialPort->open();
 }
 
 void SerialPortUtil::closeSerialPort() { m_serialPort->close(); }
@@ -44,7 +45,18 @@ int SerialPortUtil::sendSerialPortMsg(QByteArray msg) {
     return res;
 }
 
+QVector<SerialPortInfo> SerialPortUtil::availableSerialPorts() {
+    QVector<SerialPortInfo> availableSerialPortsList;
+
+    std::vector<SerialPortInfo> portsList = CSerialPortInfo::availablePortInfos();
+    availableSerialPortsList              = QVector<SerialPortInfo>::fromStdVector(portsList);
+
+    return availableSerialPortsList;
+}
+
 void SerialPortUtil::onReadEvent(const char *portName, unsigned int readBufferLen) {
+    Q_UNUSED(portName);
+
     if (readBufferLen > 0) {
         int  recLen     = 0;
         char buff[1024] = {0};

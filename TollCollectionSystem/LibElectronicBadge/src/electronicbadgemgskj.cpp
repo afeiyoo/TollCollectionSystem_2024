@@ -14,12 +14,14 @@ ElectronicBadgeMgskj::ElectronicBadgeMgskj(QObject *parent) : QObject{parent} {
 }
 
 ElectronicBadgeMgskj::~ElectronicBadgeMgskj() {
+    if (checkConnection()) disconnect();
     delete m_serialPortUtil;
     delete m_logger;
 }
 
-int ElectronicBadgeMgskj::connect(const char *portName, int rate, int sleep) {
-    bool result = m_serialPortUtil->openSerialPort(portName, rate);
+bool ElectronicBadgeMgskj::connect(const char *portName, int baudrate, int parity, int dataBits, int stopBits,
+                                   int readIntervalTimeout) {
+    bool result = m_serialPortUtil->openSerialPort(portName, baudrate, parity, dataBits, stopBits, readIntervalTimeout);
     if (result == false) {
         m_logger->error("串口 %s 打开失败: 错误代码 %d, 错误码信息 %s", portName, m_serialPortUtil->getLastError(),
                         m_serialPortUtil->getLastErrorMsg());
@@ -30,11 +32,11 @@ int ElectronicBadgeMgskj::connect(const char *portName, int rate, int sleep) {
 }
 
 void ElectronicBadgeMgskj::disconnect() {
-    m_logger->info("关闭串口...");
+    m_logger->info("串口已关闭");
     m_serialPortUtil->closeSerialPort();
 }
 
-int ElectronicBadgeMgskj::printText(QByteArray content) {
+int ElectronicBadgeMgskj::printText(QByteArray content, int color, int fontSize, const SendMessageCallback &callback) {
     // 1. 检查连接是否正常
     if (!checkConnection()) {
         m_logger->error("串口未打开，无法发送数据");
@@ -48,7 +50,16 @@ int ElectronicBadgeMgskj::printText(QByteArray content) {
     checkChar(hexContent, 96 * 2);
 
     char XORBuff[(1 + 1 + 1 + 96 + 1) * 2 + 1] = {0};  // 需要进行XOR校验的数据内容
-    strcpy(XORBuff, "500012");                         // CMD COLOR SIZE 的十六进制内容
+    strcpy(XORBuff, "50");                             // CMD
+
+    char colorStr[3] = {0};
+    snprintf(colorStr, sizeof(colorStr), "%02d", color);
+    strcpy(XORBuff + 2, colorStr);  // Color
+
+    char fontSizeStr[3] = {0};
+    snprintf(fontSizeStr, sizeof(fontSizeStr), "%02d", fontSize);
+    strcpy(XORBuff + 4, fontSizeStr);  // Fontsize
+
     strcpy(XORBuff + 6, hexContent);
     m_hexTool.AppendXor(XORBuff);
 
@@ -61,17 +72,23 @@ int ElectronicBadgeMgskj::printText(QByteArray content) {
     m_hexTool.Hex2Buf(buff, hexBuff, strlen(buff));
 
     // 3. 发送数据
-    int res = m_serialPortUtil->sendSerialPortMsg(QByteArray((char *)hexBuff, strlen(buff) / 2));
+    int        res = m_serialPortUtil->sendSerialPortMsg(QByteArray((char *)hexBuff, strlen(buff) / 2));
+    QByteArray sendData;
     if (res < 0) {
         m_logger->error("发送数据失败: 错误码 %d, 错误码信息 %s", m_serialPortUtil->getLastError(),
                         m_serialPortUtil->getLastErrorMsg());
+        sendData = "";
     } else {
-        m_logger->error("成功发送 %d 字节数据", res);
+        sendData = QByteArray((char *)hexBuff, strlen(buff) / 2);
+        m_logger->info("发送数据成功: 总体数据 %d 字节，成功发送 %d 字节数据", strlen(buff) / 2, res);
+        m_logger->info("数据: %s", sendData.toHex().toUpper().constData());
     }
+
+    if (callback) callback(res, sendData);
     return res;
 }
 
-int ElectronicBadgeMgskj::resetScreen() {
+int ElectronicBadgeMgskj::resetScreen(const SendMessageCallback &callback) {
     // 1. 检查连接是否正常
     if (!checkConnection()) {
         m_logger->error("串口未打开，无法发送数据");
@@ -85,13 +102,19 @@ int ElectronicBadgeMgskj::resetScreen() {
     m_hexTool.Hex2Buf(buff, hexBuff, buffLen);
 
     // 3. 发送数据
-    int res = m_serialPortUtil->sendSerialPortMsg(QByteArray((char *)hexBuff, buffLen / 2));
+    int        res = m_serialPortUtil->sendSerialPortMsg(QByteArray((char *)hexBuff, buffLen / 2));
+    QByteArray sendData;
     if (res < 0) {
         m_logger->error("发送数据失败: 错误码 %d, 错误码信息 %s", m_serialPortUtil->getLastError(),
                         m_serialPortUtil->getLastErrorMsg());
+        sendData = "";
     } else {
-        m_logger->error("成功发送 %d 字节数据", res);
+        sendData = QByteArray((char *)hexBuff, strlen(buff) / 2);
+        m_logger->info("发送数据成功: 总体数据 %d 字节，成功发送 %d 字节数据", buffLen / 2, res);
+        m_logger->info("数据: %s", sendData.toHex().toUpper().constData());
     }
+
+    if (callback) callback(res, sendData);
     return res;
 }
 
