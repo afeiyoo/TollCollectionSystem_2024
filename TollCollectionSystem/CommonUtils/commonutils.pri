@@ -1,10 +1,14 @@
+QT += network
+
 HEADERS += \
     $$PWD/CHexBufTool.h \
     $$PWD/CommLogger.h \
     $$PWD/CommonTool.h  \
+    $$PWD/httpclientutil.h \
     $$PWD/serialportutil.h
 
 SOURCES += \
+    $$PWD/httpclientutil.cpp \
     $$PWD/serialportutil.cpp \
     $$PWD/CHexBufTool.cpp \
     $$PWD/CommLogger.cpp \
