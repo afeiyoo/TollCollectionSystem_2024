@@ -7,7 +7,7 @@
 #include <QLineEdit>
 #include <QObject>
 
-#include "include/electronicbadge.h"
+#include "electronicbadge.h"
 #include "serialportutil.h"
 
 namespace Ui {
